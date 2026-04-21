@@ -1,0 +1,82 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Lead {
+  id        Int     @id @default(autoincrement())
+  name      String
+  email     String  @unique
+  phone     String?
+  businessType String
+  location  String
+  website   String?
+  campaignId Int
+  campaign  Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  emailLogs EmailLog[]
+  replyLogs ReplyLog[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([campaignId])
+  @@index([email])
+}
+
+model Campaign {
+  id        Int     @id @default(autoincrement())
+  name      String  @unique
+  businessType String
+  location  String
+  limit     Int     @default(50)
+  status    String  @default("draft") // draft, active, paused, completed
+  leads     Lead[]
+  emailLogs EmailLog[]
+  replyLogs ReplyLog[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model EmailLog {
+  id        Int     @id @default(autoincrement())
+  campaignId Int
+  campaign  Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  leadId    Int
+  lead      Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  recipientEmail String
+  subject   String
+  body      String
+  status    String  @default("pending") // pending, sent, failed, bounced
+  error     String?
+  sentAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([campaignId])
+  @@index([leadId])
+  @@index([status])
+}
+
+model ReplyLog {
+  id        Int     @id @default(autoincrement())
+  campaignId Int
+  campaign  Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  leadId    Int
+  lead      Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  senderEmail String
+  subject   String
+  body      String
+  intent    String? // interested, not_interested, follow_up
+  confidence Float?
+  raw       String
+  createdAt DateTime @default(now())
+
+  @@index([campaignId])
+  @@index([leadId])
+  @@index([intent])
+}
